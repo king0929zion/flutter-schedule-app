@@ -12,6 +12,11 @@ sed -i "s/^version: .*/version: $new_version/" pubspec.yaml
 
 echo "Building version: $new_version"
 
+# Commit version bump first
+git add pubspec.yaml
+git commit -m "Bump version to ${new_version} [skip ci]"
+git push
+
 # Build
 export ANDROID_HOME=/opt/android-sdk
 export PATH="/opt/flutter/bin:$PATH"
@@ -19,8 +24,9 @@ flutter build apk --release
 
 # Copy APK with version name
 cp build/app/outputs/flutter-apk/app-release.apk "app-release-${new_version}.apk"
+cp build/app/outputs/flutter-apk/app-release.apk app-release.apk
 
-# Create versioned release + upload app-release.apk for static URL
+# Create versioned release
 if gh release view "v${new_version}" >/dev/null 2>&1; then
   gh release upload "v${new_version}" "app-release-${new_version}.apk" --clobber
 else
@@ -30,8 +36,7 @@ else
     "app-release-${new_version}.apk"
 fi
 
-# Update latest → always has app-release.apk (static URL)
-cp build/app/outputs/flutter-apk/app-release.apk app-release.apk
+# Update latest → always has app-release.apk for static URL
 if gh release view latest >/dev/null 2>&1; then
   gh release upload latest app-release.apk --clobber
 else
@@ -46,11 +51,6 @@ git commit -m "Deploy v${new_version} [skip ci]" || true
 git push origin gh-pages
 git checkout master
 
-# Push version change
-git add pubspec.yaml
-git commit -m "Bump version to ${new_version} [skip ci]"
-git push
-
 rm -f "app-release-${new_version}.apk" app-release.apk
 
 echo ""
@@ -60,3 +60,4 @@ echo "============================================"
 echo "Static download URLs:"
 echo "  GitHub Releases : https://github.com/king0929zion/flutter-schedule-app/releases/latest/download/app-release.apk"
 echo "  GitHub Pages    : https://king0929zion.github.io/flutter-schedule-app/app-release.apk"
+echo "  Raw (always up) : https://raw.githubusercontent.com/king0929zion/flutter-schedule-app/gh-pages/app-release.apk"
