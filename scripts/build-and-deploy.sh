@@ -17,30 +17,46 @@ export ANDROID_HOME=/opt/android-sdk
 export PATH="/opt/flutter/bin:$PATH"
 flutter build apk --release
 
-# Copy APK
+# Copy APK with version name
 cp build/app/outputs/flutter-apk/app-release.apk "app-release-${new_version}.apk"
 
-# Create GitHub release
-gh release create "v${new_version}" \
-  --title "Schedule App v${new_version}" \
-  --notes "Auto-build v${new_version}" \
-  "app-release-${new_version}.apk" || \
-gh release upload "v${new_version}" "app-release-${new_version}.apk" --clobber
+# Create versioned release + upload app-release.apk for static URL
+if gh release view "v${new_version}" >/dev/null 2>&1; then
+  gh release upload "v${new_version}" "app-release-${new_version}.apk" --clobber
+else
+  gh release create "v${new_version}" \
+    --title "Schedule App v${new_version}" \
+    --notes "Auto-build v${new_version}" \
+    "app-release-${new_version}.apk"
+fi
 
-# Also update the latest tag
-gh release upload latest "app-release-${new_version}.apk" --clobber 2>/dev/null || \
-gh release create latest \
-  --title "Latest Build" \
-  --notes "Latest auto-build" \
-  "app-release-${new_version}.apk" || true
+# Update latest → always has app-release.apk (static URL)
+cp build/app/outputs/flutter-apk/app-release.apk app-release.apk
+if gh release view latest >/dev/null 2>&1; then
+  gh release upload latest app-release.apk --clobber
+else
+  gh release create latest --title "Latest Build" --notes "Latest auto-build" app-release.apk
+fi
 
-rm -f "app-release-${new_version}.apk"
+# Deploy to gh-pages
+git checkout gh-pages
+cp /tmp/opencode/flutter_schedule_app/build/app/outputs/flutter-apk/app-release.apk app-release.apk
+git add app-release.apk
+git commit -m "Deploy v${new_version} [skip ci]" || true
+git push origin gh-pages
+git checkout master
 
 # Push version change
 git add pubspec.yaml
-git commit -m "Bump version to $new_version [skip ci]"
+git commit -m "Bump version to ${new_version} [skip ci]"
 git push
 
+rm -f "app-release-${new_version}.apk" app-release.apk
+
 echo ""
-echo "Download URL: https://github.com/king0929zion/flutter-schedule-app/releases/latest/download/app-release-${new_version}.apk"
-echo "Latest always: https://github.com/king0929zion/flutter-schedule-app/releases/latest/download/app-release.apk"
+echo "============================================"
+echo "✅ Version ${new_version} built and deployed"
+echo "============================================"
+echo "Static download URLs:"
+echo "  GitHub Releases : https://github.com/king0929zion/flutter-schedule-app/releases/latest/download/app-release.apk"
+echo "  GitHub Pages    : https://king0929zion.github.io/flutter-schedule-app/app-release.apk"
