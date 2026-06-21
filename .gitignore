@@ -2,6 +2,15 @@
 .packages
 .pub/
 build/
+.android/
+.idea/
+*.iml
+*.class
+*.log
+*.lock
+android/.gradle/
 android/local.properties
+android/key.properties
 .flutter-plugins
 .flutter-plugins-dependencies
+.metadata
