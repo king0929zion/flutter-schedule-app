@@ -15,3 +15,4 @@ android/key.properties
 .flutter-plugins-dependencies
 .metadata
 *.apk
+key.properties
